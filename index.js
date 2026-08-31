@@ -40,6 +40,21 @@ app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/reviews', reviewRoutes);
 
+// Root landing page
+app.get('/', (req, res) => {
+  res.send(`
+    <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 50px auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+      <h2 style="color: #0d9488; margin-top: 0;">🩺 DermaCare Backend API Server</h2>
+      <p style="color: #475569; font-size: 16px;">The Express + Socket.io backend server is running successfully on port ${PORT}.</p>
+      <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #0d9488; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Frontend UI App:</strong> <a href="http://localhost:3000" target="_blank" style="color: #2563eb;">http://localhost:3000</a></p>
+        <p style="margin: 5px 0;"><strong>API Health Endpoint:</strong> <a href="/api/health" style="color: #2563eb;">/api/health</a></p>
+      </div>
+      <p style="font-size: 13px; color: #94a3b8;">DermaCare Healthcare Platform v1.0.0</p>
+    </div>
+  `);
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({
