@@ -1,0 +1,355 @@
+{
+  "users": [
+    {
+      "_id": "6a9525c36a133773cb580012",
+      "id": "user-superadmin-1",
+      "email": "sajidabdullah735@gmail.com",
+      "role": "super_admin",
+      "full_name": "Sajid Abdullah",
+      "password": "Sajid@2001",
+      "status": "active",
+      "phone": "+91 9876543210",
+      "avatar_url": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=300",
+      "created_at": "2026-08-31T06:57:05.935Z",
+      "assigned_region": "",
+      "__v": 0,
+      "createdAt": "2026-08-31T06:57:07.119Z",
+      "updatedAt": "2026-08-31T06:57:07.119Z"
+    },
+    {
+      "id": "user-doc-1",
+      "email": "sajihasan09@gmail.com",
+      "password": "Sajid@2001",
+      "role": "doctor",
+      "status": "active",
+      "full_name": "Sajid",
+      "phone": "",
+      "avatar_url": "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=300",
+      "created_at": "2026-08-31T07:19:53.334Z",
+      "$setOnInsert": {
+        "__v": 0
+      }
+    },
+    {
+      "id": "user-patient-1",
+      "email": "sajista09@gmail.com",
+      "password": "Sajid@2001",
+      "role": "client",
+      "status": "active",
+      "full_name": "Raja",
+      "phone": "+918573057985",
+      "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300",
+      "created_at": "2026-08-31T07:23:21.799Z",
+      "$setOnInsert": {
+        "__v": 0
+      }
+    }
+  ],
+  "doctor_profiles": [
+    {
+      "id": "docprof-1",
+      "user_id": "user-doc-1",
+      "avatar_url": "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=300",
+      "specialization": "Hair & Scalp Disorders, Pigmentation & Laser Specialist",
+      "qualifications": "",
+      "experience_years": 0,
+      "clinic_name": "",
+      "clinic_address": "",
+      "latitude": 19.076,
+      "longitude": 72.8777,
+      "bio": "",
+      "verification_status": "verified",
+      "consultation_modes": "both",
+      "rating": 5,
+      "reviews_count": 0,
+      "consultation_fee": 0,
+      "$setOnInsert": {
+        "__v": 0
+      }
+    }
+  ],
+  "patient_profiles": [
+    {
+      "id": "patprof-1",
+      "user_id": "user-patient-1",
+      "dob": "1995-01-01",
+      "gender": "Other",
+      "blood_group": "O+",
+      "emergency_contact": "Family Member (+91 98000 09999)",
+      "allergies": "None reported",
+      "medical_history": "No prior dermatological conditions",
+      "$setOnInsert": {
+        "__v": 0
+      }
+    }
+  ],
+  "slots": [],
+  "appointments": [],
+  "condition_submissions": [],
+  "consultations": [],
+  "prescriptions": [],
+  "notifications": [],
+  "audit_logs": [
+    {
+      "id": "audit-1788161050770-103",
+      "actor_id": "user-patient-1",
+      "actor_name": "Raja",
+      "actor_role": "client",
+      "action": "USER_LOGIN",
+      "target_entity": "users",
+      "target_id": "user-patient-1",
+      "details": "User logged in to client CRM",
+      "ip_address": "127.0.0.1",
+      "timestamp": "2026-08-31T07:24:10.770Z"
+    },
+    {
+      "id": "audit-1788161037567-919",
+      "actor_id": "user-superadmin-1",
+      "actor_name": "Sajid Abdullah",
+      "actor_role": "super_admin",
+      "action": "APPROVED_USER_REGISTRATION",
+      "target_entity": "users",
+      "target_id": "user-patient-1",
+      "details": "Super Admin approved registration for Raja (client)",
+      "ip_address": "127.0.0.1",
+      "timestamp": "2026-08-31T07:23:57.567Z",
+      "$setOnInsert": {
+        "__v": 0
+      }
+    },
+    {
+      "id": "audit-1788161026236-678",
+      "actor_id": "user-superadmin-1",
+      "actor_name": "Sajid Abdullah",
+      "actor_role": "super_admin",
+      "action": "USER_LOGIN",
+      "target_entity": "users",
+      "target_id": "user-superadmin-1",
+      "details": "User logged in to super_admin CRM",
+      "ip_address": "127.0.0.1",
+      "timestamp": "2026-08-31T07:23:46.236Z",
+      "$setOnInsert": {
+        "__v": 0
+      }
+    },
+    {
+      "id": "audit-1788161001802-130",
+      "actor_id": "user-patient-1",
+      "actor_name": "Raja",
+      "actor_role": "client",
+      "action": "REGISTERED_PATIENT",
+      "target_entity": "users",
+      "target_id": "user-patient-1",
+      "details": "New patient registration pending Super Admin approval",
+      "ip_address": "127.0.0.1",
+      "timestamp": "2026-08-31T07:23:21.802Z",
+      "$setOnInsert": {
+        "__v": 0
+      }
+    },
+    {
+      "id": "audit-1788160939140-454",
+      "actor_id": "user-doc-1",
+      "actor_name": "Sajid",
+      "actor_role": "doctor",
+      "action": "USER_LOGIN",
+      "target_entity": "users",
+      "target_id": "user-doc-1",
+      "details": "User logged in to doctor CRM",
+      "ip_address": "127.0.0.1",
+      "timestamp": "2026-08-31T07:22:19.140Z",
+      "$setOnInsert": {
+        "__v": 0
+      }
+    },
+    {
+      "id": "audit-1788160931864-512",
+      "actor_id": "user-doc-1",
+      "actor_name": "Sajid",
+      "actor_role": "doctor",
+      "action": "RESET_PASSWORD",
+      "target_entity": "users",
+      "target_id": "user-doc-1",
+      "details": "User reset password via OTP",
+      "ip_address": "127.0.0.1",
+      "timestamp": "2026-08-31T07:22:11.864Z",
+      "$setOnInsert": {
+        "__v": 0
+      }
+    },
+    {
+      "id": "audit-1788160863175-494",
+      "actor_id": "user-doc-1",
+      "actor_name": "Sajid",
+      "actor_role": "doctor",
+      "action": "USER_LOGIN",
+      "target_entity": "users",
+      "target_id": "user-doc-1",
+      "details": "User logged in to doctor CRM",
+      "ip_address": "127.0.0.1",
+      "timestamp": "2026-08-31T07:21:03.175Z",
+      "$setOnInsert": {
+        "__v": 0
+      }
+    },
+    {
+      "id": "audit-1788160851830-591",
+      "actor_id": "user-doc-1",
+      "actor_name": "Sajid",
+      "actor_role": "doctor",
+      "action": "RESET_PASSWORD",
+      "target_entity": "users",
+      "target_id": "user-doc-1",
+      "details": "User reset password via OTP",
+      "ip_address": "127.0.0.1",
+      "timestamp": "2026-08-31T07:20:51.830Z",
+      "$setOnInsert": {
+        "__v": 0
+      }
+    },
+    {
+      "id": "audit-1788160802328-856",
+      "actor_id": "user-superadmin-1",
+      "actor_name": "Sajid Abdullah",
+      "actor_role": "super_admin",
+      "action": "APPROVED_USER_REGISTRATION",
+      "target_entity": "users",
+      "target_id": "user-doc-1",
+      "details": "Super Admin approved registration for Sajid (doctor)",
+      "ip_address": "127.0.0.1",
+      "timestamp": "2026-08-31T07:20:02.328Z",
+      "$setOnInsert": {
+        "__v": 0
+      }
+    },
+    {
+      "id": "audit-1788160793344-403",
+      "actor_id": "user-doc-1",
+      "actor_name": "Sajid",
+      "actor_role": "doctor",
+      "action": "REGISTERED_DOCTOR",
+      "target_entity": "users",
+      "target_id": "user-doc-1",
+      "details": "New doctor registration pending Super Admin approval",
+      "ip_address": "127.0.0.1",
+      "timestamp": "2026-08-31T07:19:53.344Z",
+      "$setOnInsert": {
+        "__v": 0
+      }
+    },
+    {
+      "id": "audit-1788160252256-584",
+      "actor_id": "user-superadmin-1",
+      "actor_name": "Sajid Abdullah",
+      "actor_role": "super_admin",
+      "action": "APPROVED_USER_REGISTRATION",
+      "target_entity": "users",
+      "target_id": "user-doc-5",
+      "details": "Super Admin approved registration for Sajid (doctor)",
+      "ip_address": "127.0.0.1",
+      "timestamp": "2026-08-31T07:10:52.256Z"
+    },
+    {
+      "id": "audit-1788160250148-676",
+      "actor_id": "user-superadmin-1",
+      "actor_name": "Sajid Abdullah",
+      "actor_role": "super_admin",
+      "action": "REJECTED_USER_REGISTRATION",
+      "target_entity": "users",
+      "target_id": "user-doc-3",
+      "details": "Super Admin rejected registration for admin (doctor)",
+      "ip_address": "127.0.0.1",
+      "timestamp": "2026-08-31T07:10:50.148Z",
+      "$setOnInsert": {
+        "__v": 0
+      }
+    },
+    {
+      "id": "audit-1788160098179-88",
+      "actor_id": "user-superadmin-1",
+      "actor_name": "Sajid Abdullah",
+      "actor_role": "super_admin",
+      "action": "USER_LOGIN",
+      "target_entity": "users",
+      "target_id": "user-superadmin-1",
+      "details": "User logged in to super_admin CRM",
+      "ip_address": "127.0.0.1",
+      "timestamp": "2026-08-31T07:08:18.179Z"
+    },
+    {
+      "id": "audit-1787920942632-230",
+      "actor_id": "user-superadmin-1",
+      "actor_name": "Sajid Abdullah",
+      "actor_role": "super_admin",
+      "action": "REJECTED_USER_REGISTRATION",
+      "target_entity": "users",
+      "target_id": "user-doc-2",
+      "details": "Super Admin rejected registration for admin (doctor)",
+      "ip_address": "127.0.0.1",
+      "timestamp": "2026-08-28T12:42:22.632Z",
+      "$setOnInsert": {
+        "__v": 0
+      }
+    },
+    {
+      "id": "audit-1787920909891-859",
+      "actor_id": "user-superadmin-1",
+      "actor_name": "Sajid Abdullah",
+      "actor_role": "super_admin",
+      "action": "APPROVED_USER_REGISTRATION",
+      "target_entity": "users",
+      "target_id": "user-doc-1",
+      "details": "Super Admin approved registration for NK Doc1 (doctor)",
+      "ip_address": "127.0.0.1",
+      "timestamp": "2026-08-28T12:41:49.891Z",
+      "$setOnInsert": {
+        "__v": 0
+      }
+    },
+    {
+      "id": "audit-1787920891273-188",
+      "actor_id": "user-superadmin-1",
+      "actor_name": "Sajid Abdullah",
+      "actor_role": "super_admin",
+      "action": "APPROVED_USER_REGISTRATION",
+      "target_entity": "users",
+      "target_id": "user-doc-4",
+      "details": "Super Admin approved registration for PS Docter (doctor)",
+      "ip_address": "127.0.0.1",
+      "timestamp": "2026-08-28T12:41:31.273Z",
+      "$setOnInsert": {
+        "__v": 0
+      }
+    },
+    {
+      "id": "audit-1787919177884-931",
+      "actor_id": "user-superadmin-1",
+      "actor_name": "Sajid Abdullah",
+      "actor_role": "super_admin",
+      "action": "USER_LOGIN",
+      "target_entity": "users",
+      "target_id": "user-superadmin-1",
+      "details": "User logged in to super_admin CRM",
+      "ip_address": "127.0.0.1",
+      "timestamp": "2026-08-28T12:12:57.884Z",
+      "$setOnInsert": {
+        "__v": 0
+      }
+    },
+    {
+      "id": "audit-1787919168699-320",
+      "actor_id": "user-superadmin-1",
+      "actor_name": "Sajid Abdullah",
+      "actor_role": "super_admin",
+      "action": "USER_LOGIN",
+      "target_entity": "users",
+      "target_id": "user-superadmin-1",
+      "details": "User logged in to super_admin CRM",
+      "ip_address": "127.0.0.1",
+      "timestamp": "2026-08-28T12:12:48.699Z",
+      "$setOnInsert": {
+        "__v": 0
+      }
+    }
+  ]
+}
