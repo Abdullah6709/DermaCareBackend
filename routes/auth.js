@@ -14,18 +14,39 @@ const getSmtpTransporter = async () => {
   const smtpPass = process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : '';
   const smtpHost = process.env.SMTP_HOST ? process.env.SMTP_HOST.trim() : '';
   const smtpService = process.env.SMTP_SERVICE ? process.env.SMTP_SERVICE.trim() : '';
+  const smtpPort = parseInt(process.env.SMTP_PORT) || 587;
+  const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
 
   if (smtpUser && smtpPass) {
-    console.log(`📧 [SMTP ENGINE] Creating Gmail Nodemailer Transporter for user: ${smtpUser}`);
+    if (smtpHost) {
+      console.log(`📧 [SMTP ENGINE] Creating Host-based Nodemailer Transporter (${smtpHost}:${smtpPort}) for user: ${smtpUser}`);
+      return nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpSecure,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass
+        },
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+    }
+
+    console.log(`📧 [SMTP ENGINE] Creating Gmail Service Nodemailer Transporter for user: ${smtpUser}`);
     return nodemailer.createTransport({
       service: smtpService || 'gmail',
       auth: {
         user: smtpUser,
         pass: smtpPass
       },
-      connectionTimeout: 8000,
-      greetingTimeout: 8000,
-      socketTimeout: 10000,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
       tls: {
         rejectUnauthorized: false
       }
@@ -33,14 +54,14 @@ const getSmtpTransporter = async () => {
   }
 
   if (smtpHost) {
-    const port = parseInt(process.env.SMTP_PORT) || 25;
+    console.log(`📧 [SMTP ENGINE] Creating Host-based Custom Transporter (${smtpHost}:${smtpPort})`);
     return nodemailer.createTransport({
       host: smtpHost,
-      port: port,
-      secure: false,
-      connectionTimeout: 8000,
-      greetingTimeout: 8000,
-      socketTimeout: 10000,
+      port: smtpPort,
+      secure: smtpSecure,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
       tls: { rejectUnauthorized: false }
     });
   }
@@ -48,6 +69,35 @@ const getSmtpTransporter = async () => {
   // If no SMTP configured, return null immediately without network calls
   return null;
 };
+
+// GET /api/auth/test-smtp - Diagnostic endpoint to verify SMTP configuration
+router.get('/test-smtp', async (req, res) => {
+  try {
+    const smtpUser = process.env.SMTP_USER ? process.env.SMTP_USER.trim() : '';
+    const smtpHost = process.env.SMTP_HOST ? process.env.SMTP_HOST.trim() : '';
+    const transporter = await getSmtpTransporter();
+
+    if (!transporter) {
+      return res.status(500).json({
+        configured: false,
+        error: 'SMTP_USER and SMTP_PASS (or SMTP_HOST) are not set in environment variables.'
+      });
+    }
+
+    await transporter.verify();
+    return res.json({
+      configured: true,
+      status: 'SMTP connection verified successfully!',
+      user: smtpUser || 'host-auth',
+      host: smtpHost || 'service-gmail'
+    });
+  } catch (err) {
+    return res.status(500).json({
+      configured: false,
+      error: 'SMTP verification failed: ' + err.message
+    });
+  }
+});
 
 // POST /api/auth/send-otp - Generate 6-digit OTP & send via SMTP
 router.post('/send-otp', async (req, res) => {
