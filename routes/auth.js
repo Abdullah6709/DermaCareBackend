@@ -78,48 +78,48 @@ router.post('/send-otp', async (req, res) => {
   console.log(`🔐 [OTP GENERATED] Email: ${cleanEmail} | OTP Code: ${otpCode}`);
   console.log(`========================================\n`);
 
-  let emailSent = false;
   try {
     const transporter = await getSmtpTransporter();
-    if (transporter) {
-      const smtpUser = process.env.SMTP_USER ? process.env.SMTP_USER.trim() : '';
-      const fromAddress = process.env.SMTP_FROM || (smtpUser ? `"DermaCare Security" <${smtpUser}>` : 'no-reply@dermacare.in');
-      const mailOptions = {
-        from: fromAddress,
-        to: cleanEmail,
-        subject: `Your DermaCare Verification Code`,
-        text: `Your DermaCare account verification code is: ${otpCode}\n\nThis code will expire in 10 minutes.`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-            <h2 style="color: #0d9488; margin-top: 0;">DermaCare Healthcare</h2>
-            <p style="font-size: 15px; color: #333333;">Your verification code is:</p>
-            <div style="margin: 20px 0; text-align: center;">
-              <span style="font-size: 30px; font-weight: bold; letter-spacing: 5px; color: #0d9488; background-color: #f0fdf4; padding: 10px 20px; border-radius: 6px; border: 1px solid #0d9488; display: inline-block;">
-                ${otpCode}
-              </span>
-            </div>
-            <p style="font-size: 13px; color: #666666;">This security code is valid for 10 minutes.</p>
-          </div>
-        `
-      };
-
-      const info = await transporter.sendMail(mailOptions);
-      emailSent = true;
-      console.log(`\n========================================`);
-      console.log(`✅ [EMAIL DISPATCHED TO INBOX] OTP code ${otpCode} sent to ${cleanEmail}! Message ID: ${info.messageId}`);
-      console.log(`========================================\n`);
+    if (!transporter) {
+      throw new Error('SMTP email service is not configured on the server.');
     }
-  } catch (mailErr) {
-    console.warn('⚠️ SMTP Mail Dispatch Notice (falling back to demo OTP):', mailErr.message);
-  }
 
-  return res.json({
-    success: true,
-    message: emailSent
-      ? `Verification OTP has been sent to ${cleanEmail}. Check your inbox!`
-      : `Verification OTP code ${otpCode} generated for ${cleanEmail}.`,
-    demoOtp: emailSent ? undefined : otpCode
-  });
+    const smtpUser = process.env.SMTP_USER ? process.env.SMTP_USER.trim() : '';
+    const fromAddress = process.env.SMTP_FROM || (smtpUser ? `"DermaCare Security" <${smtpUser}>` : 'no-reply@dermacare.in');
+    const mailOptions = {
+      from: fromAddress,
+      to: cleanEmail,
+      subject: `Your DermaCare Verification Code`,
+      text: `Your DermaCare account verification code is: ${otpCode}\n\nThis code will expire in 10 minutes.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <h2 style="color: #0d9488; margin-top: 0;">DermaCare Healthcare</h2>
+          <p style="font-size: 15px; color: #333333;">Your verification code is:</p>
+          <div style="margin: 20px 0; text-align: center;">
+            <span style="font-size: 30px; font-weight: bold; letter-spacing: 5px; color: #0d9488; background-color: #f0fdf4; padding: 10px 20px; border-radius: 6px; border: 1px solid #0d9488; display: inline-block;">
+              ${otpCode}
+            </span>
+          </div>
+          <p style="font-size: 13px; color: #666666;">This security code is valid for 10 minutes.</p>
+        </div>
+      `
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`\n========================================`);
+    console.log(`✅ [EMAIL DISPATCHED TO INBOX] OTP code sent to ${cleanEmail}! Message ID: ${info.messageId}`);
+    console.log(`========================================\n`);
+
+    return res.json({
+      success: true,
+      message: `Verification OTP has been sent to ${cleanEmail}. Please check your inbox!`
+    });
+  } catch (mailErr) {
+    console.error('❌ [SMTP ERROR] Failed to send OTP email:', mailErr.message);
+    return res.status(500).json({
+      error: 'Failed to send OTP verification email. Please check your email address or try again later.'
+    });
+  }
 });
 
 // POST /api/auth/verify-otp - Validate 6-digit OTP code
@@ -184,48 +184,44 @@ router.post('/forgot-password/send-otp', async (req, res) => {
 
   try {
     const transporter = await getSmtpTransporter();
-    const smtpUser = process.env.SMTP_USER ? process.env.SMTP_USER.trim() : '';
-    const fromAddress = smtpUser || 'no-reply@dermacare.in';
-
-    if (transporter) {
-      const smtpUser = process.env.SMTP_USER ? process.env.SMTP_USER.trim() : '';
-      const fromAddress = process.env.SMTP_FROM || (smtpUser ? `"DermaCare Security" <${smtpUser}>` : 'no-reply@dermacare.in');
-      const mailOptions = {
-        from: fromAddress,
-        to: cleanEmail,
-        subject: `Your DermaCare Password Reset Code`,
-        text: `Hello ${user.full_name},\n\nYour 6-digit OTP to reset your DermaCare password is: ${otpCode}\n\nThis security code will expire in 10 minutes.`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-            <h2 style="color: #0d9488; margin-top: 0;">DermaCare Password Reset</h2>
-            <p style="font-size: 15px; color: #333333;">Hello <strong>${user.full_name}</strong>,</p>
-            <p style="font-size: 15px; color: #333333;">Your password reset OTP is:</p>
-            <div style="margin: 20px 0; text-align: center;">
-              <span style="font-size: 30px; font-weight: bold; letter-spacing: 5px; color: #0d9488; background-color: #f0fdf4; padding: 10px 20px; border-radius: 6px; border: 1px solid #0d9488; display: inline-block;">
-                ${otpCode}
-              </span>
-            </div>
-            <p style="font-size: 13px; color: #666666;">This code is valid for 10 minutes.</p>
-          </div>
-        `
-      };
-
-      await transporter.sendMail(mailOptions);
-      console.log(`✅ [PASSWORD RESET OTP SENT] to ${cleanEmail}`);
+    if (!transporter) {
+      throw new Error('SMTP email service is not configured on the server.');
     }
 
-    res.json({
-      success: true,
-      message: process.env.SMTP_PASS ? `Password reset OTP has been sent to ${cleanEmail}. Check your inbox!` : `Password reset OTP code ${otpCode} generated for ${cleanEmail}.`,
-      demoOtp: process.env.SMTP_PASS ? undefined : otpCode
-    });
-  } catch (mailErr) {
-    console.warn('⚠️ SMTP Mail Dispatch Notice:', mailErr.message);
-    console.log(`🔑 [FORGOT PASSWORD BACKUP] Code ${otpCode} generated for ${cleanEmail}.`);
+    const smtpUser = process.env.SMTP_USER ? process.env.SMTP_USER.trim() : '';
+    const fromAddress = process.env.SMTP_FROM || (smtpUser ? `"DermaCare Security" <${smtpUser}>` : 'no-reply@dermacare.in');
+
+    const mailOptions = {
+      from: fromAddress,
+      to: cleanEmail,
+      subject: `Your DermaCare Password Reset Code`,
+      text: `Hello ${user.full_name},\n\nYour 6-digit OTP to reset your DermaCare password is: ${otpCode}\n\nThis security code will expire in 10 minutes.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <h2 style="color: #0d9488; margin-top: 0;">DermaCare Password Reset</h2>
+          <p style="font-size: 15px; color: #333333;">Hello <strong>${user.full_name}</strong>,</p>
+          <p style="font-size: 15px; color: #333333;">Your password reset OTP is:</p>
+          <div style="margin: 20px 0; text-align: center;">
+            <span style="font-size: 30px; font-weight: bold; letter-spacing: 5px; color: #0d9488; background-color: #f0fdf4; padding: 10px 20px; border-radius: 6px; border: 1px solid #0d9488; display: inline-block;">
+              ${otpCode}
+            </span>
+          </div>
+          <p style="font-size: 13px; color: #666666;">This code is valid for 10 minutes.</p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ [PASSWORD RESET OTP SENT] to ${cleanEmail}`);
+
     return res.json({
       success: true,
-      message: `Password reset OTP code ${otpCode} generated for ${cleanEmail}.`,
-      demoOtp: otpCode
+      message: `Password reset OTP has been sent to ${cleanEmail}. Please check your inbox!`
+    });
+  } catch (mailErr) {
+    console.error('❌ [SMTP ERROR] Failed to send password reset OTP:', mailErr.message);
+    return res.status(500).json({
+      error: 'Failed to send password reset OTP email. Please try again later.'
     });
   }
 });
