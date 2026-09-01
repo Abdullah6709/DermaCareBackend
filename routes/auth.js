@@ -2,7 +2,13 @@ const express = require('express');
 const router = express.Router();
 const nodemailer = require('nodemailer');
 const dotenv = require('dotenv');
+const dns = require('dns');
 const { db, logAudit, getNextUserId, getNextProfileId, persistRecord } = require('../db/database');
+
+// Force IPv4 resolution first to prevent ENETUNREACH errors on cloud platforms like Render
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 // In-memory store for 6-digit verification OTPs
 const otpStore = {};
@@ -12,34 +18,17 @@ const getSmtpTransporter = async () => {
   dotenv.config();
   const smtpUser = process.env.SMTP_USER ? process.env.SMTP_USER.trim() : '';
   const smtpPass = process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : '';
-  const smtpHost = process.env.SMTP_HOST ? process.env.SMTP_HOST.trim() : '';
-  const smtpService = process.env.SMTP_SERVICE ? process.env.SMTP_SERVICE.trim() : '';
+  const smtpHost = process.env.SMTP_HOST ? process.env.SMTP_HOST.trim() : 'smtp.gmail.com';
   const smtpPort = parseInt(process.env.SMTP_PORT) || 587;
-  const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
+  const smtpSecure = process.env.SMTP_SECURE === 'true';
 
   if (smtpUser && smtpPass) {
-    if (smtpHost) {
-      console.log(`📧 [SMTP ENGINE] Creating Host-based Nodemailer Transporter (${smtpHost}:${smtpPort}) for user: ${smtpUser}`);
-      return nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: smtpSecure,
-        auth: {
-          user: smtpUser,
-          pass: smtpPass
-        },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 15000,
-        tls: {
-          rejectUnauthorized: false
-        }
-      });
-    }
-
-    console.log(`📧 [SMTP ENGINE] Creating Gmail Service Nodemailer Transporter for user: ${smtpUser}`);
+    console.log(`📧 [SMTP ENGINE] Creating IPv4-enforced Nodemailer Transporter (${smtpHost}:${smtpPort}) for user: ${smtpUser}`);
     return nodemailer.createTransport({
-      service: smtpService || 'gmail',
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      family: 4, // Force IPv4 to prevent Render IPv6 ENETUNREACH errors
       auth: {
         user: smtpUser,
         pass: smtpPass
@@ -54,11 +43,12 @@ const getSmtpTransporter = async () => {
   }
 
   if (smtpHost) {
-    console.log(`📧 [SMTP ENGINE] Creating Host-based Custom Transporter (${smtpHost}:${smtpPort})`);
+    console.log(`📧 [SMTP ENGINE] Creating Custom Transporter (${smtpHost}:${smtpPort})`);
     return nodemailer.createTransport({
       host: smtpHost,
       port: smtpPort,
       secure: smtpSecure,
+      family: 4,
       connectionTimeout: 10000,
       greetingTimeout: 10000,
       socketTimeout: 15000,
@@ -89,7 +79,7 @@ router.get('/test-smtp', async (req, res) => {
       configured: true,
       status: 'SMTP connection verified successfully!',
       user: smtpUser || 'host-auth',
-      host: smtpHost || 'service-gmail'
+      host: smtpHost || 'smtp.gmail.com'
     });
   } catch (err) {
     return res.status(500).json({
@@ -135,12 +125,14 @@ router.post('/send-otp', async (req, res) => {
     }
 
     const smtpUser = process.env.SMTP_USER ? process.env.SMTP_USER.trim() : '';
-    const fromAddress = process.env.SMTP_FROM || (smtpUser ? `"DermaCare Security" <${smtpUser}>` : 'no-reply@dermacare.in');
+    const fromAddress = process.env.SMTP_FROM || (smtpUser ? `"DermaCare Healthcare" <${smtpUser}>` : 'no-reply@dermacare.in');
+    
     const mailOptions = {
       from: fromAddress,
+      replyTo: smtpUser || undefined,
       to: cleanEmail,
       subject: `Your DermaCare Verification Code`,
-      text: `Your DermaCare account verification code is: ${otpCode}\n\nThis code will expire in 10 minutes.`,
+      text: `Hello,\n\nYour DermaCare account verification code is: ${otpCode}\n\nThis security code will expire in 10 minutes.\nIf you did not request this code, please ignore this email.`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
           <h2 style="color: #0d9488; margin-top: 0;">DermaCare Healthcare</h2>
@@ -152,7 +144,13 @@ router.post('/send-otp', async (req, res) => {
           </div>
           <p style="font-size: 13px; color: #666666;">This security code is valid for 10 minutes.</p>
         </div>
-      `
+      `,
+      headers: {
+        'X-Priority': '1',
+        'X-MSMail-Priority': 'High',
+        'Importance': 'High',
+        'X-Auto-Response-Suppress': 'OOF, AutoReply'
+      }
     };
 
     const info = await transporter.sendMail(mailOptions);
@@ -239,10 +237,11 @@ router.post('/forgot-password/send-otp', async (req, res) => {
     }
 
     const smtpUser = process.env.SMTP_USER ? process.env.SMTP_USER.trim() : '';
-    const fromAddress = process.env.SMTP_FROM || (smtpUser ? `"DermaCare Security" <${smtpUser}>` : 'no-reply@dermacare.in');
+    const fromAddress = process.env.SMTP_FROM || (smtpUser ? `"DermaCare Healthcare" <${smtpUser}>` : 'no-reply@dermacare.in');
 
     const mailOptions = {
       from: fromAddress,
+      replyTo: smtpUser || undefined,
       to: cleanEmail,
       subject: `Your DermaCare Password Reset Code`,
       text: `Hello ${user.full_name},\n\nYour 6-digit OTP to reset your DermaCare password is: ${otpCode}\n\nThis security code will expire in 10 minutes.`,
@@ -258,7 +257,13 @@ router.post('/forgot-password/send-otp', async (req, res) => {
           </div>
           <p style="font-size: 13px; color: #666666;">This code is valid for 10 minutes.</p>
         </div>
-      `
+      `,
+      headers: {
+        'X-Priority': '1',
+        'X-MSMail-Priority': 'High',
+        'Importance': 'High',
+        'X-Auto-Response-Suppress': 'OOF, AutoReply'
+      }
     };
 
     await transporter.sendMail(mailOptions);
