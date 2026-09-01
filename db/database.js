@@ -6,6 +6,8 @@ const fs = require('fs');
 const path = require('path');
 const storeFilePath = path.join(__dirname, '../data/persistedStore.json');
 
+let saveTimeout = null;
+
 // In-Memory Database Store (Full feature complete state engine)
 const db = {
   users: [...seed.initialUsers],
@@ -41,8 +43,6 @@ function loadDiskStore() {
 // Load persisted disk store immediately
 loadDiskStore();
 saveDiskStore();
-
-let saveTimeout = null;
 
 // Helper: Save disk store asynchronously with debouncing (non-blocking)
 function saveDiskStore() {
