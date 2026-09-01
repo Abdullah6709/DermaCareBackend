@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 
+const compression = require('compression');
+
 dotenv.config();
 
 const { connectDB } = require('./config/db');
@@ -21,8 +23,15 @@ const reviewRoutes = require('./routes/reviews');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Enable CORS & JSON Parsing
-app.use(cors());
+// Enable HTTP Response Compression (Gzip / Brotli)
+app.use(compression());
+
+// Enable CORS with Preflight Cache (24 hours = 86400 seconds)
+app.use(cors({
+  maxAge: 86400,
+  credentials: true
+}));
+
 app.use(express.json({ limit: '10mb' }));
 
 // Attach authentication middleware

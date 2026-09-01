@@ -20,14 +20,19 @@ const connectDB = async () => {
   try {
     mongoose.set('strictQuery', false);
     await mongoose.connect(mongoURI, {
-      serverSelectionTimeoutMS: 5000
+      serverSelectionTimeoutMS: 5000,
+      maxPoolSize: 10,
+      minPoolSize: 2,
+      connectTimeoutMS: 5000,
+      socketTimeoutMS: 45000
     });
     isConnected = true;
     console.log(`[MongoDB Atlas] Connected successfully to Database.`);
 
-    // Auto-seed data if database is empty, otherwise sync MongoDB records to memory
-    await seedDatabaseIfEmpty();
-    await syncMongoDBToMemory();
+    // Run seed/sync non-blockingly so server startup completes immediately
+    seedDatabaseIfEmpty()
+      .then(() => syncMongoDBToMemory())
+      .catch(err => console.warn('[MongoDB Init Warning]', err.message));
   } catch (err) {
     console.warn(`[MongoDB Atlas Warning] Database connection failed/timed out (${err.message}). Defaulting to high-performance in-memory database engine.`);
     isConnected = false;

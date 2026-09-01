@@ -42,13 +42,18 @@ function loadDiskStore() {
 loadDiskStore();
 saveDiskStore();
 
-// Helper: Save disk store
+let saveTimeout = null;
+
+// Helper: Save disk store asynchronously with debouncing (non-blocking)
 function saveDiskStore() {
-  try {
-    fs.writeFileSync(storeFilePath, JSON.stringify(db, null, 2), 'utf8');
-  } catch (err) {
-    console.warn('[Disk Store Warning] Could not save persistedStore.json:', err.message);
-  }
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    saveTimeout = null;
+    fs.promises.writeFile(storeFilePath, JSON.stringify(db), 'utf8')
+      .catch(err => {
+        console.warn('[Disk Store Warning] Could not save persistedStore.json asynchronously:', err.message);
+      });
+  }, 500);
 }
 
 // Helper: Asynchronous persistence to MongoDB Atlas & Local Disk
