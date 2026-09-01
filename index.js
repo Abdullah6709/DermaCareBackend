@@ -28,8 +28,9 @@ app.use(compression());
 
 // Enable CORS with Preflight Cache (24 hours = 86400 seconds)
 app.use(cors({
-  maxAge: 86400,
-  credentials: true
+  origin: true,
+  credentials: true,
+  maxAge: 86400
 }));
 
 app.use(express.json({ limit: '10mb' }));

@@ -23,6 +23,9 @@ const getSmtpTransporter = async () => {
         user: smtpUser,
         pass: smtpPass
       },
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 10000,
       tls: {
         rejectUnauthorized: false
       }
@@ -35,6 +38,9 @@ const getSmtpTransporter = async () => {
       host: smtpHost,
       port: port,
       secure: false,
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 10000,
       tls: { rejectUnauthorized: false }
     });
   }
@@ -77,8 +83,9 @@ router.post('/send-otp', async (req, res) => {
     const transporter = await getSmtpTransporter();
     if (transporter) {
       const smtpUser = process.env.SMTP_USER ? process.env.SMTP_USER.trim() : '';
+      const fromAddress = process.env.SMTP_FROM || (smtpUser ? `"DermaCare Security" <${smtpUser}>` : 'no-reply@dermacare.in');
       const mailOptions = {
-        from: smtpUser || 'no-reply@dermacare.in',
+        from: fromAddress,
         to: cleanEmail,
         subject: `Your DermaCare Verification Code`,
         text: `Your DermaCare account verification code is: ${otpCode}\n\nThis code will expire in 10 minutes.`,
@@ -181,8 +188,10 @@ router.post('/forgot-password/send-otp', async (req, res) => {
     const fromAddress = smtpUser || 'no-reply@dermacare.in';
 
     if (transporter) {
+      const smtpUser = process.env.SMTP_USER ? process.env.SMTP_USER.trim() : '';
+      const fromAddress = process.env.SMTP_FROM || (smtpUser ? `"DermaCare Security" <${smtpUser}>` : 'no-reply@dermacare.in');
       const mailOptions = {
-        from: smtpUser || 'sajidabdullah735@gmail.com',
+        from: fromAddress,
         to: cleanEmail,
         subject: `Your DermaCare Password Reset Code`,
         text: `Hello ${user.full_name},\n\nYour 6-digit OTP to reset your DermaCare password is: ${otpCode}\n\nThis security code will expire in 10 minutes.`,
