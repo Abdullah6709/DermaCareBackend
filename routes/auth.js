@@ -7,7 +7,7 @@ const { db, logAudit, getNextUserId, getNextProfileId, persistRecord } = require
 // In-memory store for 6-digit verification OTPs
 const otpStore = {};
 
-// Helper: Get SMTP Transporter (Supports real Gmail SMTP, passwordless local SMTP, or Ethereal test inbox)
+// Helper: Get SMTP Transporter (Supports real Gmail SMTP or passwordless custom SMTP)
 const getSmtpTransporter = async () => {
   dotenv.config();
   const smtpUser = process.env.SMTP_USER ? process.env.SMTP_USER.trim() : '';
@@ -39,21 +39,8 @@ const getSmtpTransporter = async () => {
     });
   }
 
-  try {
-    const testAccount = await nodemailer.createTestAccount();
-    return nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      secure: false,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass
-      }
-    });
-  } catch (err) {
-    console.error('Failed to create test transporter:', err.message);
-    return null;
-  }
+  // If no SMTP configured, return null immediately without network calls
+  return null;
 };
 
 // POST /api/auth/send-otp - Generate 6-digit OTP & send via SMTP
@@ -85,14 +72,13 @@ router.post('/send-otp', async (req, res) => {
   console.log(`🔐 [OTP GENERATED] Email: ${cleanEmail} | OTP Code: ${otpCode}`);
   console.log(`========================================\n`);
 
+  let emailSent = false;
   try {
     const transporter = await getSmtpTransporter();
-    const smtpUser = process.env.SMTP_USER ? process.env.SMTP_USER.trim() : '';
-    const fromAddress = smtpUser || 'no-reply@dermacare.in';
-
     if (transporter) {
+      const smtpUser = process.env.SMTP_USER ? process.env.SMTP_USER.trim() : '';
       const mailOptions = {
-        from: smtpUser || 'sajidabdullah735@gmail.com',
+        from: smtpUser || 'no-reply@dermacare.in',
         to: cleanEmail,
         subject: `Your DermaCare Verification Code`,
         text: `Your DermaCare account verification code is: ${otpCode}\n\nThis code will expire in 10 minutes.`,
@@ -111,32 +97,22 @@ router.post('/send-otp', async (req, res) => {
       };
 
       const info = await transporter.sendMail(mailOptions);
-      const previewUrl = nodemailer.getTestMessageUrl(info);
-      if (previewUrl) {
-        console.log(`\n========================================`);
-        console.log(`📧 [ETHEREAL TEST INBOX PREVIEW]: ${previewUrl}`);
-        console.log(`========================================\n`);
-      } else {
-        console.log(`\n========================================`);
-        console.log(`✅ [EMAIL DISPATCHED TO INBOX] OTP code ${otpCode} sent to ${cleanEmail}! Message ID: ${info.messageId}`);
-        console.log(`========================================\n`);
-      }
+      emailSent = true;
+      console.log(`\n========================================`);
+      console.log(`✅ [EMAIL DISPATCHED TO INBOX] OTP code ${otpCode} sent to ${cleanEmail}! Message ID: ${info.messageId}`);
+      console.log(`========================================\n`);
     }
-
-    res.json({
-      success: true,
-      message: process.env.SMTP_PASS ? `Verification OTP has been sent to ${cleanEmail}. Check your inbox!` : `Verification OTP code ${otpCode} generated for ${cleanEmail}.`,
-      demoOtp: process.env.SMTP_PASS ? undefined : otpCode
-    });
   } catch (mailErr) {
-    console.warn('⚠️ SMTP Mail Dispatch Notice:', mailErr.message);
-    console.log(`🔐 [OTP BACKUP] Code ${otpCode} generated for ${cleanEmail}.`);
-    return res.json({
-      success: true,
-      message: `Verification OTP code ${otpCode} generated for ${cleanEmail}.`,
-      demoOtp: otpCode
-    });
+    console.warn('⚠️ SMTP Mail Dispatch Notice (falling back to demo OTP):', mailErr.message);
   }
+
+  return res.json({
+    success: true,
+    message: emailSent
+      ? `Verification OTP has been sent to ${cleanEmail}. Check your inbox!`
+      : `Verification OTP code ${otpCode} generated for ${cleanEmail}.`,
+    demoOtp: emailSent ? undefined : otpCode
+  });
 });
 
 // POST /api/auth/verify-otp - Validate 6-digit OTP code
