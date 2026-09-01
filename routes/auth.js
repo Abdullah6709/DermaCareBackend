@@ -18,17 +18,35 @@ const getSmtpTransporter = async () => {
   dotenv.config();
   const smtpUser = process.env.SMTP_USER ? process.env.SMTP_USER.trim() : '';
   const smtpPass = process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : '';
-  const smtpHost = process.env.SMTP_HOST ? process.env.SMTP_HOST.trim() : 'smtp.gmail.com';
+  const smtpHost = process.env.SMTP_HOST ? process.env.SMTP_HOST.trim() : '';
+  const smtpService = process.env.SMTP_SERVICE ? process.env.SMTP_SERVICE.trim() : '';
   const smtpPort = parseInt(process.env.SMTP_PORT) || 587;
   const smtpSecure = process.env.SMTP_SECURE === 'true';
 
   if (smtpUser && smtpPass) {
-    console.log(`📧 [SMTP ENGINE] Creating IPv4-enforced Nodemailer Transporter (${smtpHost}:${smtpPort}) for user: ${smtpUser}`);
+    if (smtpService === 'gmail' || smtpUser.endsWith('@gmail.com') || !smtpHost || smtpHost === 'smtp.gmail.com') {
+      console.log(`📧 [SMTP ENGINE] Creating Gmail Service Transporter for user: ${smtpUser}`);
+      return nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: smtpUser,
+          pass: smtpPass
+        },
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+    }
+
+    console.log(`📧 [SMTP ENGINE] Creating Custom Host Transporter (${smtpHost}:${smtpPort}) for user: ${smtpUser}`);
     return nodemailer.createTransport({
       host: smtpHost,
       port: smtpPort,
       secure: smtpSecure,
-      family: 4, // Force IPv4 to prevent Render IPv6 ENETUNREACH errors
+      family: 4,
       auth: {
         user: smtpUser,
         pass: smtpPass
