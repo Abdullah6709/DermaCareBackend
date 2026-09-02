@@ -7,7 +7,7 @@ const initialUsers = [
     status: 'active',
     full_name: 'Sajid Abdullah',
     phone: '+91 9876543210',
-    avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=300',
+    avatar_url: '',
     created_at: new Date().toISOString()
   }
 ];

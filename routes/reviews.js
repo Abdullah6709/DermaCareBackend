@@ -56,7 +56,7 @@ router.post('/', (req, res) => {
     appointment_id: appointment_id || null,
     rating: Number(rating),
     comment: (comment || '').trim() || 'Great treatment & consultation experience.',
-    clinic_name: clinic_name || apt.clinic_name || 'DermaCare Clinic',
+    clinic_name: clinic_name || apt.clinic_name || '',
     created_at: new Date().toISOString()
   };
 

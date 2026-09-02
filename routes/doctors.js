@@ -29,13 +29,13 @@ router.get('/', (req, res) => {
     // Collect clinic practices for this doctor
     let clinicsList = Array.isArray(docProf.clinics) && docProf.clinics.length > 0
       ? [...docProf.clinics]
-      : [{
+      : (docProf.clinic_name ? [{
           id: `clinic-${docProf.id}`,
-          clinic_name: docProf.clinic_name || 'DermaCare Clinic',
+          clinic_name: docProf.clinic_name,
           clinic_address: docProf.clinic_address || '',
           consultation_fee: docProf.consultation_fee ?? 0,
           consultation_modes: docProf.consultation_modes || 'both'
-        }];
+        }] : []);
 
     // Also include any distinct clinic_name found in available slots
     allAvailableSlots.forEach(s => {
@@ -73,7 +73,7 @@ router.get('/', (req, res) => {
         avatar_url: userObj.avatar_url,
         phone: userObj.phone,
         email: userObj.email,
-        clinic_name: clinic.clinic_name || 'DermaCare Clinic',
+        clinic_name: clinic.clinic_name || '',
         clinic_address: clinic.clinic_address || '',
         consultation_fee: effectiveFee,
         distance_km: distanceKm,
@@ -86,6 +86,11 @@ router.get('/', (req, res) => {
   // Filter verification status (allow verified or unapproved depending on query)
   if (verification_status) {
     doctors = doctors.filter(d => !d.verification_status || d.verification_status === verification_status);
+  }
+
+  // Filter by available slots if requested (has_slots=true)
+  if (req.query.has_slots === 'true') {
+    doctors = doctors.filter(d => d.available_slots_count > 0);
   }
 
   // Filter by distance radius (if radius >= 500, ignore distance cap)
@@ -228,12 +233,12 @@ router.get('/:id', (req, res) => {
   // Match specific clinic practice if requestedId matches clinic listing ID
   let clinicsList = Array.isArray(docProf.clinics) && docProf.clinics.length > 0
     ? [...docProf.clinics]
-    : [{
+    : (docProf.clinic_name ? [{
         id: `clinic-${docProf.id}`,
-        clinic_name: docProf.clinic_name || 'DermaCare Clinic',
+        clinic_name: docProf.clinic_name,
         clinic_address: docProf.clinic_address || '',
         consultation_fee: docProf.consultation_fee ?? 0
-      }];
+      }] : []);
 
   let matchedClinic = clinicsList.find(c => {
     const fullClinicId = `${docProf.id}-${(c.clinic_name || 'clinic').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
@@ -247,7 +252,7 @@ router.get('/:id', (req, res) => {
     });
   }
 
-  const activeClinicName = matchedClinic ? matchedClinic.clinic_name : (docProf.clinic_name || 'DermaCare Clinic');
+  const activeClinicName = matchedClinic ? matchedClinic.clinic_name : (docProf.clinic_name || '');
   const activeClinicAddress = matchedClinic ? matchedClinic.clinic_address : (docProf.clinic_address || '');
 
   // Filter slots strictly matching this specific practice clinic location
@@ -279,10 +284,79 @@ router.get('/:id', (req, res) => {
   });
 });
 
+const parseTimeToMinutes = (timeStr) => {
+  if (!timeStr) return 0;
+  const match = String(timeStr).trim().toUpperCase().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return 0;
+  let [_, hrs, mins, ampm] = match;
+  hrs = parseInt(hrs, 10);
+  mins = parseInt(mins, 10);
+  if (ampm.toUpperCase() === 'PM' && hrs < 12) hrs += 12;
+  if (ampm.toUpperCase() === 'AM' && hrs === 12) hrs = 0;
+  return hrs * 60 + mins;
+};
+
+const isDoctorPresentOnDay = (dateStr, clinicObj) => {
+  if (!clinicObj || clinicObj.visit_days === undefined || clinicObj.visit_days === null) return true;
+
+  let visitDaysArr = [];
+  if (Array.isArray(clinicObj.visit_days)) {
+    visitDaysArr = clinicObj.visit_days;
+  } else if (typeof clinicObj.visit_days === 'string' && clinicObj.visit_days.trim()) {
+    visitDaysArr = clinicObj.visit_days.split(',').map(s => s.trim());
+  }
+
+  if (!visitDaysArr || visitDaysArr.length === 0) return true;
+
+  const dateObj = new Date(dateStr + 'T00:00:00');
+  if (isNaN(dateObj.getTime())) return true;
+
+  const fullDay = dateObj.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+  const shortDay = dateObj.toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase();
+  const currentDayIdx = dateObj.getDay();
+
+  return visitDaysArr.some(dayPattern => {
+    const p = String(dayPattern).trim().toLowerCase();
+    if (!p) return false;
+
+    if (p === fullDay || p === shortDay || p.startsWith(shortDay) || p.startsWith(fullDay)) {
+      return true;
+    }
+
+    if (p.includes('-') || p.includes('to')) {
+      const parts = p.split(/-|to/).map(s => s.trim().toLowerCase());
+      if (parts.length === 2) {
+        const weekOrder = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+        const weekOrderFull = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        
+        let startIdx = weekOrder.findIndex(w => parts[0].startsWith(w));
+        if (startIdx === -1) startIdx = weekOrderFull.findIndex(w => parts[0].startsWith(w));
+
+        let endIdx = weekOrder.findIndex(w => parts[1].startsWith(w));
+        if (endIdx === -1) endIdx = weekOrderFull.findIndex(w => parts[1].startsWith(w));
+
+        if (startIdx !== -1 && endIdx !== -1) {
+          if (startIdx <= endIdx) {
+            return currentDayIdx >= startIdx && currentDayIdx <= endIdx;
+          } else {
+            return currentDayIdx >= startIdx || currentDayIdx <= endIdx;
+          }
+        }
+      }
+    }
+    return false;
+  });
+};
+
 // POST /api/doctors/slots - Generate / Add new slots (Single or Bulk)
 router.post('/slots', (req, res) => {
   const doctorId = req.user.id;
   const docProf = db.doctor_profiles.find(d => d.user_id === doctorId);
+
+  const hasClinic = (Array.isArray(docProf?.clinics) && docProf.clinics.length > 0) || Boolean(docProf?.clinic_name);
+  if (!hasClinic) {
+    return res.status(400).json({ error: 'You cannot add or book any slot until you add at least one clinic to your profile.' });
+  }
 
   let rawSlots = [];
   if (Array.isArray(req.body.slots)) {
@@ -297,9 +371,34 @@ router.post('/slots', (req, res) => {
     return res.status(400).json({ error: 'No slot data provided' });
   }
 
+  const now = new Date();
+  const todayStr = now.toLocaleDateString('en-CA');
+  const currentMins = now.getHours() * 60 + now.getMinutes();
+
+  const validSlots = rawSlots.filter(s => {
+    const slotDate = s.date || todayStr;
+    if (slotDate < todayStr) return false;
+    if (slotDate === todayStr && s.start_time) {
+      const slotStartMins = parseTimeToMinutes(s.start_time);
+      if (slotStartMins < currentMins) return false;
+    }
+
+    const clinicName = s.clinic_name || docProf?.clinics?.[0]?.clinic_name || docProf?.clinic_name || '';
+    const matchedClinic = docProf?.clinics?.find(c => c.clinic_name === clinicName);
+    if (matchedClinic && !isDoctorPresentOnDay(slotDate, matchedClinic)) {
+      return false;
+    }
+
+    return true;
+  });
+
+  if (validSlots.length === 0) {
+    return res.status(400).json({ error: 'Cannot create slots on past dates/times or days when the doctor is absent at the clinic.' });
+  }
+
   const createdSlots = [];
-  rawSlots.forEach((s, idx) => {
-    const clinicName = s.clinic_name || docProf?.clinics?.[0]?.clinic_name || docProf?.clinic_name || 'DermaCare Clinic';
+  validSlots.forEach((s, idx) => {
+    const clinicName = s.clinic_name || docProf?.clinics?.[0]?.clinic_name || docProf?.clinic_name || '';
     const matchedClinic = docProf?.clinics?.find(c => c.clinic_name === clinicName);
     const fee = s.consultation_fee !== undefined && s.consultation_fee !== null
       ? Number(s.consultation_fee)
@@ -337,14 +436,44 @@ router.post('/slots/bulk', (req, res) => {
   const doctorId = req.user.id;
   const docProf = db.doctor_profiles.find(d => d.user_id === doctorId);
 
+  const hasClinic = (Array.isArray(docProf?.clinics) && docProf.clinics.length > 0) || Boolean(docProf?.clinic_name);
+  if (!hasClinic) {
+    return res.status(400).json({ error: 'You cannot add or book any slot until you add at least one clinic to your profile.' });
+  }
+
   const rawSlots = Array.isArray(req.body.slots) ? req.body.slots : (Array.isArray(req.body) ? req.body : []);
   if (rawSlots.length === 0) {
     return res.status(400).json({ error: 'No bulk slots provided' });
   }
 
+  const now = new Date();
+  const todayStr = now.toLocaleDateString('en-CA');
+  const currentMins = now.getHours() * 60 + now.getMinutes();
+
+  const validSlots = rawSlots.filter(s => {
+    const slotDate = s.date || todayStr;
+    if (slotDate < todayStr) return false;
+    if (slotDate === todayStr && s.start_time) {
+      const slotStartMins = parseTimeToMinutes(s.start_time);
+      if (slotStartMins < currentMins) return false;
+    }
+
+    const clinicName = s.clinic_name || docProf?.clinics?.[0]?.clinic_name || docProf?.clinic_name || '';
+    const matchedClinic = docProf?.clinics?.find(c => c.clinic_name === clinicName);
+    if (matchedClinic && !isDoctorPresentOnDay(slotDate, matchedClinic)) {
+      return false;
+    }
+
+    return true;
+  });
+
+  if (validSlots.length === 0) {
+    return res.status(400).json({ error: 'Cannot create slots on past dates/times or days when the doctor is absent at the clinic.' });
+  }
+
   const createdSlots = [];
-  rawSlots.forEach((s, idx) => {
-    const clinicName = s.clinic_name || docProf?.clinics?.[0]?.clinic_name || docProf?.clinic_name || 'DermaCare Clinic';
+  validSlots.forEach((s, idx) => {
+    const clinicName = s.clinic_name || docProf?.clinics?.[0]?.clinic_name || docProf?.clinic_name || '';
     const matchedClinic = docProf?.clinics?.find(c => c.clinic_name === clinicName);
     const fee = s.consultation_fee !== undefined && s.consultation_fee !== null
       ? Number(s.consultation_fee)
@@ -384,6 +513,23 @@ router.put('/slots/:id', (req, res) => {
 
   if (!slot) {
     return res.status(404).json({ error: 'Slot not found' });
+  }
+
+  const now = new Date();
+  const todayStr = now.toLocaleDateString('en-CA');
+  const targetDate = date || slot.date;
+  const targetStartTime = start_time || slot.start_time;
+
+  if (targetDate < todayStr) {
+    return res.status(400).json({ error: 'Cannot set slot date to a past date.' });
+  }
+
+  if (targetDate === todayStr && targetStartTime) {
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    const slotStartMins = parseTimeToMinutes(targetStartTime);
+    if (slotStartMins < currentMins) {
+      return res.status(400).json({ error: 'Cannot set slot time to a past time.' });
+    }
   }
 
   if (date) slot.date = date;
@@ -493,6 +639,14 @@ router.post('/holidays', (req, res) => {
 
   const startDateStr = start_date;
   const endDateStr = end_date || start_date;
+
+  const todayStr = new Date().toLocaleDateString('en-CA');
+  if (startDateStr < todayStr) {
+    return res.status(400).json({ error: 'Leave start date cannot be in the past. Please select today or an upcoming date.' });
+  }
+  if (endDateStr < startDateStr) {
+    return res.status(400).json({ error: 'Leave end date cannot be earlier than start date.' });
+  }
 
   // 1. Find all slots of this doctor in the leave date range [startDateStr, endDateStr]
   const slotsToRemove = db.slots.filter(s => s.doctor_id === doctorId && s.date >= startDateStr && s.date <= endDateStr);
@@ -627,6 +781,14 @@ router.put('/holidays/:id', (req, res) => {
   const startDateStr = start_date || holiday.start_date;
   const endDateStr = end_date || holiday.end_date;
 
+  const todayStr = new Date().toLocaleDateString('en-CA');
+  if (startDateStr < todayStr) {
+    return res.status(400).json({ error: 'Leave start date cannot be in the past. Please select today or an upcoming date.' });
+  }
+  if (endDateStr < startDateStr) {
+    return res.status(400).json({ error: 'Leave end date cannot be earlier than start date.' });
+  }
+
   // 1. RESTORE all previously backed up slots for this holiday
   const previousBackedUp = Array.isArray(holiday.backed_up_slots) ? holiday.backed_up_slots : [];
   let restoredCount = 0;
@@ -735,7 +897,7 @@ router.post('/create-patient', (req, res) => {
     status: 'pending',
     full_name,
     phone: phone || '+91 98000 00000',
-    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300',
+    avatar_url: '',
     created_at: new Date().toISOString()
   };
 

@@ -485,7 +485,7 @@ router.post('/register/patient', (req, res) => {
     status: 'pending',
     full_name,
     phone: phone,
-    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300',
+    avatar_url: '',
     created_at: new Date().toISOString()
   };
 
@@ -666,7 +666,7 @@ router.post('/register/super-admin', (req, res) => {
     status: 'active',
     full_name,
     phone: phone || '+1 (555) 019-2831',
-    avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=300',
+    avatar_url: '',
     created_at: new Date().toISOString()
   };
 

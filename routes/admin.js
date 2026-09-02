@@ -311,7 +311,7 @@ router.post('/create-skit-admin', requireRole('super_admin'), (req, res) => {
     full_name,
     phone: phone || '+91 98100 54321',
     employee_id: employee_id || `SKIT-${Math.floor(10000 + Math.random() * 90000)}`,
-    avatar_url: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=300',
+    avatar_url: '',
     created_at: new Date().toISOString(),
     assigned_region: assigned_region || 'Western Maharashtra Zone (Mumbai)'
   };
@@ -432,7 +432,7 @@ router.get('/appointments', requireRole('super_admin', 'skit_admin'), (req, res)
       patient_email: patientUser.email || '',
       doctor_name: doctorUser.full_name || apt.doctor_id,
       doctor_email: doctorUser.email || '',
-      clinic_name: doctorProf.clinic_name || 'DermaCare Clinic',
+      clinic_name: doctorProf.clinic_name || doctorProf.clinics?.[0]?.clinic_name || apt.clinic_name || '',
       slot_time: slot.start_time ? `${slot.date}, ${slot.start_time}` : (apt.appointment_date || 'Today'),
       booking_fee: realFee,
       consultation_fee: realFee
