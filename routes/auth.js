@@ -492,12 +492,12 @@ router.post('/register/patient', (req, res) => {
   const newPatientProfile = {
     id: getNextProfileId('patprof-', db.patient_profiles),
     user_id: userId,
-    dob: '1995-01-01',
-    gender: 'Other',
-    blood_group: 'O+',
-    emergency_contact: 'Family Member (+91 98000 09999)',
-    allergies: 'None reported',
-    medical_history: 'No prior dermatological conditions'
+    dob: '',
+    gender: '',
+    blood_group: '',
+    emergency_contact: '',
+    allergies: '',
+    medical_history: ''
   };
 
   db.users.push(newUser);
@@ -541,12 +541,12 @@ router.put('/patient-profile', (req, res) => {
     patProf = {
       id: getNextProfileId('patprof-', db.patient_profiles),
       user_id: userId,
-      dob: '1995-01-01',
-      gender: 'Other',
-      blood_group: 'O+',
-      emergency_contact: 'N/A',
-      allergies: 'None reported',
-      medical_history: 'No prior conditions'
+      dob: '',
+      gender: '',
+      blood_group: '',
+      emergency_contact: '',
+      allergies: '',
+      medical_history: ''
     };
     db.patient_profiles.push(patProf);
   }
@@ -588,7 +588,6 @@ router.post('/register/doctor', (req, res) => {
   }
 
   const userId = getNextUserId('doc');
-  const userAvatar = 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=300';
 
   const newUser = {
     id: userId,
@@ -598,7 +597,7 @@ router.post('/register/doctor', (req, res) => {
     status: 'pending',
     full_name,
     phone: '',
-    avatar_url: userAvatar,
+    avatar_url: '',
     created_at: new Date().toISOString()
   };
 
@@ -611,12 +610,12 @@ router.post('/register/doctor', (req, res) => {
     experience_years: 0,
     clinic_name: '',
     clinic_address: '',
-    latitude: 19.0760,
-    longitude: 72.8777,
+    latitude: null,
+    longitude: null,
     bio: '',
     verification_status: 'pending',
     consultation_modes: 'both',
-    rating: 5.0,
+    rating: 0,
     reviews_count: 0,
     consultation_fee: 0
   };

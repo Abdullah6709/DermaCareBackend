@@ -23,19 +23,30 @@ router.get('/', (req, res) => {
 
   db.doctor_profiles.forEach(docProf => {
     const userObj = db.users.find(u => u.id === docProf.user_id) || {};
-    const distanceKm = calculateDistanceKm(patientLat, patientLng, docProf.latitude, docProf.longitude);
+
+    // A doctor will not be visible to any patient until they add their clinic or complete their profile
+    const hasClinic = (docProf.clinic_name && docProf.clinic_name.trim().length > 0) ||
+                      (Array.isArray(docProf.clinics) && docProf.clinics.length > 0 && docProf.clinics.some(c => c.clinic_name && c.clinic_name.trim().length > 0));
+
+    if (!hasClinic) {
+      return; // Do not show doctor to patients until clinic/profile is updated
+    }
+
+    const distanceKm = (docProf.latitude && docProf.longitude)
+      ? calculateDistanceKm(patientLat, patientLng, docProf.latitude, docProf.longitude)
+      : 0;
     const allAvailableSlots = db.slots.filter(s => s.doctor_id === docProf.user_id && s.status === 'available');
 
     // Collect clinic practices for this doctor
     let clinicsList = Array.isArray(docProf.clinics) && docProf.clinics.length > 0
       ? [...docProf.clinics]
-      : (docProf.clinic_name ? [{
+      : [{
           id: `clinic-${docProf.id}`,
           clinic_name: docProf.clinic_name,
           clinic_address: docProf.clinic_address || '',
           consultation_fee: docProf.consultation_fee ?? 0,
           consultation_modes: docProf.consultation_modes || 'both'
-        }] : []);
+        }];
 
     // Also include any distinct clinic_name found in available slots
     allAvailableSlots.forEach(s => {
@@ -976,17 +987,17 @@ router.put('/profile', (req, res) => {
       id: getNextProfileId('docprof-', db.doctor_profiles),
       user_id: doctorUserId,
       avatar_url: user.avatar_url || '',
-      specialization: 'General Dermatology',
+      specialization: '',
       qualifications: '',
       experience_years: 0,
       clinic_name: '',
       clinic_address: '',
-      latitude: 19.0760,
-      longitude: 72.8777,
+      latitude: null,
+      longitude: null,
       bio: '',
       verification_status: 'verified',
       consultation_modes: 'both',
-      rating: 5.0,
+      rating: 0,
       reviews_count: 0,
       consultation_fee: 0
     };
