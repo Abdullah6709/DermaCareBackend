@@ -84,7 +84,7 @@ const { initSocket } = require('./config/socket');
 const server = http.createServer(app);
 initSocket(server);
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`====================================================`);
   console.log(`🩺 Dermatology CRM Backend + WebSockets running on port ${PORT}`);
   console.log(`🌐 API Endpoint: http://localhost:${PORT}/api`);
